@@ -588,6 +588,7 @@ mod tests {
                 collection_id: "test_collection".to_string(),
                 database_id: "test_db".to_string(),
                 tenant_id: "test_tenant".to_string(),
+                database_name: None,
             },
         };
 
@@ -644,6 +645,7 @@ mod tests {
                 collection_id: "test_collection".to_string(),
                 database_id: "test_db".to_string(),
                 tenant_id: "test_tenant".to_string(),
+                database_name: None,
             },
             oldest_version_to_keep: 3,
         };
@@ -708,6 +710,7 @@ mod tests {
                 collection_id: "test_collection".to_string(),
                 database_id: "test_db".to_string(),
                 tenant_id: "test_tenant".to_string(),
+                database_name: None,
             },
             oldest_version_to_keep: 3,
         };
