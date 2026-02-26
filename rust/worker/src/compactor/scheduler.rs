@@ -6,7 +6,7 @@ use chroma_config::assignment::assignment_policy::AssignmentPolicy;
 use chroma_log::{CollectionInfo, CollectionRecord, Log};
 use chroma_memberlist::memberlist_provider::Memberlist;
 use chroma_sysdb::{DatabaseOrTopology, GetCollectionsOptions, SysDb};
-use chroma_types::{CollectionUuid, DatabaseName, JobId};
+use chroma_types::{CollectionUuid, DatabaseName, JobId, TopologyName};
 use figment::providers::Env;
 use figment::Figment;
 use opentelemetry::metrics::Counter;
@@ -69,7 +69,7 @@ pub(crate) struct Scheduler {
     assignment_policy: Box<dyn AssignmentPolicy>,
     oneoff_collections: HashSet<CollectionUuid>,
     disabled_collections: HashSet<CollectionUuid>,
-    deleted_collections: HashSet<CollectionUuid>,
+    deleted_collections: HashMap<CollectionUuid, Option<TopologyName>>,
     collections_needing_repair: HashMap<CollectionUuid, (DatabaseName, i64)>,
     in_progress_jobs: HashMap<JobId, InProgressJob>,
     job_expiry_seconds: u64,
@@ -108,7 +108,7 @@ impl Scheduler {
             assignment_policy,
             oneoff_collections: HashSet::new(),
             disabled_collections,
-            deleted_collections: HashSet::new(),
+            deleted_collections: HashMap::new(),
             collections_needing_repair: HashMap::new(),
             in_progress_jobs: HashMap::new(),
             job_expiry_seconds,
@@ -125,7 +125,9 @@ impl Scheduler {
         self.oneoff_collections.iter().cloned().collect()
     }
 
-    pub(crate) fn drain_deleted_collections(&mut self) -> Vec<CollectionUuid> {
+    pub(crate) fn drain_deleted_collections(
+        &mut self,
+    ) -> Vec<(CollectionUuid, Option<TopologyName>)> {
         self.deleted_collections.drain().collect()
     }
 
@@ -189,6 +191,7 @@ impl Scheduler {
                     collection_ids: Some(vec![collection_info.collection_id]),
                     database_or_topology: collection_info
                         .topology_name
+                        .clone()
                         .map(DatabaseOrTopology::Topology),
                     limit: Some(1),
                     offset: 0,
@@ -200,7 +203,7 @@ impl Scheduler {
                 Ok(collection) => {
                     if collection.is_empty() {
                         self.deleted_collections
-                            .insert(collection_info.collection_id);
+                            .insert(collection_info.collection_id, collection_info.topology_name);
                         continue;
                     }
 
